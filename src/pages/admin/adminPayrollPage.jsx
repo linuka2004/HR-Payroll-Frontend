@@ -22,6 +22,8 @@ export default function AdminPayrollPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [allowances, setAllowances] = useState([]);
+  const [deductions, setDeductions] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -74,10 +76,14 @@ export default function AdminPayrollPage() {
     setSearchParams({ employeeId: selectedEmployeeId });
 
     try {
+      const { cleanAllowances, cleanDeductions } = buildCleanCustomItems();
+
       const [payrollRes, attendanceRes] = await Promise.all([
         axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/payroll/employee/${selectedEmployeeId}` +
-            `?year=${year}&month=${month}&incentive=${incentive || 0}`,
+            `?year=${year}&month=${month}&incentive=${incentive || 0}` +
+            `&allowances=${encodeURIComponent(JSON.stringify(cleanAllowances))}` +
+            `&deductions=${encodeURIComponent(JSON.stringify(cleanDeductions))}`,
           {
             headers: { Authorization: "Bearer " + token },
           }
@@ -93,6 +99,34 @@ export default function AdminPayrollPage() {
 
       setPayroll(payrollRes.data);
       setAttendanceSummary(attendanceRes.data);
+
+      const backendAllowances =
+        payrollRes.data?.payroll?.customAllowances &&
+        Array.isArray(payrollRes.data.payroll.customAllowances)
+          ? payrollRes.data.payroll.customAllowances
+          : [];
+
+      const backendDeductions =
+        payrollRes.data?.payroll?.customDeductions &&
+        Array.isArray(payrollRes.data.payroll.customDeductions)
+          ? payrollRes.data.payroll.customDeductions
+          : [];
+
+      setAllowances(
+        backendAllowances.map((item, index) => ({
+          id: Date.now() + index + Math.random(),
+          label: item.label || "",
+          amount: item.amount != null ? String(item.amount) : "",
+        }))
+      );
+
+      setDeductions(
+        backendDeductions.map((item, index) => ({
+          id: Date.now() + index + Math.random(),
+          label: item.label || "",
+          amount: item.amount != null ? String(item.amount) : "",
+        }))
+      );
       toast.success("Payroll loaded");
     } catch (err) {
       console.error(err);
@@ -149,38 +183,37 @@ export default function AdminPayrollPage() {
       setDetailLoading(false);
     }
   }
+  async function refreshHistory() {
+    if (!selectedEmployeeId) return;
 
-  useEffect(() => {
-    async function loadHistory() {
-      if (!selectedEmployeeId) return;
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("You must be logged in as admin to view payroll.");
-        window.location.href = "/login";
-        return;
-      }
-
-      setHistoryLoading(true);
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/payroll/employee/${selectedEmployeeId}/history`,
-          {
-            headers: { Authorization: "Bearer " + token },
-          }
-        );
-        setHistory(res.data.payrolls || []);
-      } catch (err) {
-        console.error(err);
-        toast.error(
-          err?.response?.data?.message || "Failed to load payroll history for this employee"
-        );
-      } finally {
-        setHistoryLoading(false);
-      }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("You must be logged in as admin to view payroll.");
+      window.location.href = "/login";
+      return;
     }
 
-    loadHistory();
+    setHistoryLoading(true);
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/payroll/employee/${selectedEmployeeId}/history`,
+        {
+          headers: { Authorization: "Bearer " + token },
+        }
+      );
+      setHistory(res.data.payrolls || []);
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.message || "Failed to load payroll history for this employee"
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshHistory();
   }, [selectedEmployeeId]);
 
   function formatCurrency(value) {
@@ -189,6 +222,102 @@ export default function AdminPayrollPage() {
     if (Number.isNaN(num)) return String(value);
     return `Rs. ${num.toFixed(2)}`;
   }
+
+  function addAllowanceRow() {
+    setAllowances((prev) => [
+      ...prev,
+      { id: Date.now() + Math.random(), label: "", amount: "" },
+    ]);
+  }
+
+  function updateAllowanceRow(id, field, value) {
+    setAllowances((prev) =>
+      prev.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              [field]: field === "amount" ? value.replace(/[^0-9.\-]/g, "") : value,
+            }
+          : row
+      )
+    );
+  }
+
+  function removeAllowanceRow(id) {
+    setAllowances((prev) => prev.filter((row) => row.id !== id));
+  }
+
+  function addDeductionRow() {
+    setDeductions((prev) => [
+      ...prev,
+      { id: Date.now() + Math.random(), label: "", amount: "" },
+    ]);
+  }
+
+  function updateDeductionRow(id, field, value) {
+    setDeductions((prev) =>
+      prev.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              [field]: field === "amount" ? value.replace(/[^0-9.\-]/g, "") : value,
+            }
+          : row
+      )
+    );
+  }
+
+  function removeDeductionRow(id) {
+    setDeductions((prev) => prev.filter((row) => row.id !== id));
+  }
+
+  function getAdditionalTotals() {
+    const allowanceTotal = allowances.reduce((sum, row) => {
+      const amount = parseFloat(row.amount);
+      if (Number.isNaN(amount) || amount <= 0) return sum;
+      return sum + amount;
+    }, 0);
+
+    const deductionTotal = deductions.reduce((sum, row) => {
+      const amount = parseFloat(row.amount);
+      if (Number.isNaN(amount) || amount <= 0) return sum;
+      return sum + amount;
+    }, 0);
+
+    return {
+      allowanceTotal: Number(allowanceTotal.toFixed(2)),
+      deductionTotal: Number(deductionTotal.toFixed(2)),
+    };
+  }
+
+  function buildCleanCustomItems() {
+    const cleanAllowances = allowances
+      .filter(
+        (row) =>
+          row &&
+          String(row.label || "").trim() !== "" &&
+          !Number.isNaN(parseFloat(row.amount))
+      )
+      .map((row) => ({
+        label: String(row.label || "").trim(),
+        amount: Number(parseFloat(row.amount || 0).toFixed(2)),
+      }));
+
+    const cleanDeductions = deductions
+      .filter(
+        (row) =>
+          row &&
+          String(row.label || "").trim() !== "" &&
+          !Number.isNaN(parseFloat(row.amount))
+      )
+      .map((row) => ({
+        label: String(row.label || "").trim(),
+        amount: Number(parseFloat(row.amount || 0).toFixed(2)),
+      }));
+
+    return { cleanAllowances, cleanDeductions };
+  }
+
   function buildPayslipHtml({ employee, payrollDetails, period, totals }) {
     const periodText =
       period && period.startDate && period.endDate
@@ -208,6 +337,37 @@ export default function AdminPayrollPage() {
     const epfDeductionStr = formatCurrency(payrollDetails.epfDeduction);
     const netSalaryStr = formatCurrency(payrollDetails.netSalary);
 
+    const slipAllowances =
+      (Array.isArray(payrollDetails.customAllowances)
+        ? payrollDetails.customAllowances
+        : allowances.map((row) => ({
+            label: row.label,
+            amount: parseFloat(row.amount || 0),
+          }))) || [];
+
+    const slipDeductions =
+      (Array.isArray(payrollDetails.customDeductions)
+        ? payrollDetails.customDeductions
+        : deductions.map((row) => ({
+            label: row.label,
+            amount: parseFloat(row.amount || 0),
+          }))) || [];
+
+    const allowanceTotal = slipAllowances.reduce((sum, item) => {
+      const val = parseFloat(item.amount || 0);
+      if (Number.isNaN(val)) return sum;
+      return sum + val;
+    }, 0);
+
+    const deductionTotal = slipDeductions.reduce((sum, item) => {
+      const val = parseFloat(item.amount || 0);
+      if (Number.isNaN(val)) return sum;
+      return sum + val;
+    }, 0);
+
+    const allowanceTotalStr = formatCurrency(allowanceTotal);
+    const deductionTotalStr = formatCurrency(deductionTotal);
+
     const grossEarnings =
       Number(payrollDetails.baseSalary || 0) +
       Number(payrollDetails.otPay || 0) +
@@ -219,6 +379,28 @@ export default function AdminPayrollPage() {
     const annualLeaveDaysStr = totals ? totals.annualLeaveDays : 0;
     const sickLeaveDaysStr = totals ? totals.sickLeaveDays : 0;
     const noPayDaysStr = totals ? totals.noPayDays : 0;
+
+    const allowanceRowsHtml =
+      slipAllowances.length > 0
+        ? slipAllowances
+            .map((item) => {
+              const label = (item.label || "Custom Allowance").toString();
+              const amountStr = formatCurrency(item.amount || 0);
+              return `\n            <tr>\n              <td>${label}</td>\n              <td class="text-right">${amountStr}</td>\n            </tr>`;
+            })
+            .join("")
+        : "";
+
+    const deductionRowsHtml =
+      slipDeductions.length > 0
+        ? slipDeductions
+            .map((item) => {
+              const label = (item.label || "Custom Deduction").toString();
+              const amountStr = formatCurrency(item.amount || 0);
+              return `\n            <tr>\n              <td>${label}</td>\n              <td class="text-right">${amountStr}</td>\n            </tr>`;
+            })
+            .join("")
+        : "";
 
     return `<!DOCTYPE html>
 <html>
@@ -294,6 +476,7 @@ export default function AdminPayrollPage() {
               <td>Incentive</td>
               <td class="text-right">${incentiveStr}</td>
             </tr>
+            ${allowanceRowsHtml}
             <tr class="summary-row">
               <td>Gross Earnings (Base + OT + Incentive)</td>
               <td class="text-right">${grossEarningsStr}</td>
@@ -320,6 +503,7 @@ export default function AdminPayrollPage() {
               <td>EPF Deduction</td>
               <td class="text-right">${epfDeductionStr}</td>
             </tr>
+            ${deductionRowsHtml}
             <tr>
               <td><strong>Salary Before EPF</strong></td>
               <td class="text-right"><strong>${fullSalaryStr}</strong></td>
@@ -407,19 +591,158 @@ export default function AdminPayrollPage() {
     URL.revokeObjectURL(url);
   }
 
-  function handleDownloadPaysheet() {
-    const employee = payroll?.employee || null;
-    const payrollDetails = payroll?.payroll || null;
-    const period = payroll?.period || attendanceSummary?.period || null;
-    const totals = attendanceSummary?.totals || null;
-
-    if (!employee || !payrollDetails) {
-      toast.error("Please load payroll before downloading the paysheet.");
+  function handleSaveSalary() {
+    if (!selectedEmployeeId) {
+      toast.error("Please select an employee");
       return;
     }
 
-    const html = buildPayslipHtml({ employee, payrollDetails, period, totals });
-    downloadPayslipToDevice(html, employee, period);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("You must be logged in as admin to save payroll.");
+      window.location.href = "/login";
+      return;
+    }
+
+    const { cleanAllowances, cleanDeductions } = buildCleanCustomItems();
+
+    const url =
+      `${import.meta.env.VITE_BACKEND_URL}/payroll/employee/${selectedEmployeeId}` +
+      `?year=${year}&month=${month}&incentive=${incentive || 0}&finalize=true` +
+      `&allowances=${encodeURIComponent(JSON.stringify(cleanAllowances))}` +
+      `&deductions=${encodeURIComponent(JSON.stringify(cleanDeductions))}`;
+
+    axios
+      .get(url, {
+        headers: { Authorization: "Bearer " + token },
+      })
+      .then((res) => {
+        const data = res.data;
+        const payrollDetails = data?.payroll || null;
+
+        if (!payrollDetails) {
+          toast.error("Failed to save salary. Please try again.");
+          return;
+        }
+
+        setPayroll(data);
+
+        const backendAllowances =
+          payrollDetails.customAllowances &&
+          Array.isArray(payrollDetails.customAllowances)
+            ? payrollDetails.customAllowances
+            : [];
+        const backendDeductions =
+          payrollDetails.customDeductions &&
+          Array.isArray(payrollDetails.customDeductions)
+            ? payrollDetails.customDeductions
+            : [];
+
+        setAllowances(
+          backendAllowances.map((item, index) => ({
+            id: Date.now() + index + Math.random(),
+            label: item.label || "",
+            amount: item.amount != null ? String(item.amount) : "",
+          }))
+        );
+
+        setDeductions(
+          backendDeductions.map((item, index) => ({
+            id: Date.now() + index + Math.random(),
+            label: item.label || "",
+            amount: item.amount != null ? String(item.amount) : "",
+          }))
+        );
+
+        toast.success("Salary saved successfully");
+        // Refresh history so the Past Payroll Cycles table reflects latest DB values
+        refreshHistory();
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(
+          err?.response?.data?.message ||
+            "Failed to save salary. Please check the data and try again."
+        );
+      });
+  }
+
+  function handleDownloadPaysheet() {
+    if (!selectedEmployeeId) {
+      toast.error("Please select an employee");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("You must be logged in as admin to download payroll.");
+      window.location.href = "/login";
+      return;
+    }
+
+    const { cleanAllowances, cleanDeductions } = buildCleanCustomItems();
+
+    const url =
+      `${import.meta.env.VITE_BACKEND_URL}/payroll/employee/${selectedEmployeeId}` +
+      `?year=${year}&month=${month}&incentive=${incentive || 0}&finalize=true` +
+      `&allowances=${encodeURIComponent(JSON.stringify(cleanAllowances))}` +
+      `&deductions=${encodeURIComponent(JSON.stringify(cleanDeductions))}`;
+
+    axios
+      .get(url, {
+        headers: { Authorization: "Bearer " + token },
+      })
+      .then((res) => {
+        const data = res.data;
+        const employee = data?.employee || null;
+        const payrollDetails = data?.payroll || null;
+        const period = data?.period || attendanceSummary?.period || null;
+        const totals = attendanceSummary?.totals || null;
+
+        if (!employee || !payrollDetails) {
+          toast.error("Failed to generate paysheet. Please try again.");
+          return;
+        }
+
+        // Keep local state in sync with saved values
+        setPayroll(data);
+        const backendAllowances =
+          payrollDetails?.customAllowances && Array.isArray(payrollDetails.customAllowances)
+            ? payrollDetails.customAllowances
+            : [];
+        const backendDeductions =
+          payrollDetails?.customDeductions && Array.isArray(payrollDetails.customDeductions)
+            ? payrollDetails.customDeductions
+            : [];
+
+        setAllowances(
+          backendAllowances.map((item, index) => ({
+            id: Date.now() + index + Math.random(),
+            label: item.label || "",
+            amount: item.amount != null ? String(item.amount) : "",
+          }))
+        );
+
+        setDeductions(
+          backendDeductions.map((item, index) => ({
+            id: Date.now() + index + Math.random(),
+            label: item.label || "",
+            amount: item.amount != null ? String(item.amount) : "",
+          }))
+        );
+
+        const html = buildPayslipHtml({ employee, payrollDetails, period, totals });
+        downloadPayslipToDevice(html, employee, period);
+        // After finalizing and downloading, refresh history from the database
+        refreshHistory();
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(
+          err?.response?.data?.message ||
+            "Failed to refresh payroll before downloading the paysheet"
+        );
+      });
   }
 
   function handleDownloadPaysheetFromDetail() {
@@ -441,6 +764,8 @@ export default function AdminPayrollPage() {
   const payrollDetails = payroll?.payroll || null;
   const totals = attendanceSummary?.totals || null;
   const period = payroll?.period || attendanceSummary?.period || null;
+
+  const { allowanceTotal, deductionTotal } = getAdditionalTotals();
 
   return (
     <div className="w-full min-h-screen flex justify-center px-4 py-6 sm:px-6 md:px-10 bg-primary text-secondary custom-scrollbar">
@@ -491,7 +816,7 @@ export default function AdminPayrollPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col">
+              {/* <div className="flex flex-col">
                 <label className="text-sm font-medium mb-1">Incentive (Rs)</label>
                 <input
                   type="number"
@@ -502,7 +827,7 @@ export default function AdminPayrollPage() {
                   onChange={(e) => setIncentive(e.target.value)}
                   placeholder="0"
                 />
-              </div>
+              </div> */}
             </div>
 
             <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -512,13 +837,6 @@ export default function AdminPayrollPage() {
                 className="w-full md:w-auto px-6 h-[44px] bg-black text-white rounded-2xl hover:bg-accent/90 disabled:opacity-60"
               >
                 {loading ? "Loading..." : "Load Payroll"}
-              </button>
-              <button
-                onClick={handleDownloadPaysheet}
-                disabled={!payrollDetails}
-                className="w-full md:w-auto px-6 h-[44px] bg-white text-black border border-accent rounded-2xl hover:bg-primary/60 disabled:opacity-60"
-              >
-                Download Paysheet
               </button>
             </div>
 
@@ -608,9 +926,113 @@ export default function AdminPayrollPage() {
                       <span className="font-semibold">Incentive:</span> {" "}
                       {formatCurrency(payrollDetails.incentive)}
                     </p>
-                    <p className="mt-2 text-lg font-bold text-gold">
-                      Final Salary (after EPF): {formatCurrency(payrollDetails.netSalary)}
+                    <p className="mt-2 font-semibold">
+                      Net Salary (Take Home): {formatCurrency(payrollDetails.netSalary)}
                     </p>
+                    <div className="mt-4 border-t border-accent/40 pt-3 space-y-1">
+                      <p className="font-semibold text-sm">Additional Allowances</p>
+                      {allowances.length === 0 && (
+                        <p className="text-xs text-gray-700">No additional allowances added.</p>
+                      )}
+                      {allowances.map((row) => (
+                        <div
+                          key={row.id}
+                          className="flex flex-col sm:flex-row gap-2 items-start sm:items-center mb-1"
+                        >
+                          <input
+                            type="text"
+                            className="flex-1 rounded-xl border border-accent px-2 py-1 text-xs bg-white text-secondary focus:outline-none focus:ring-1 focus:ring-accent"
+                            placeholder="Allowance name"
+                            value={row.label}
+                            onChange={(e) =>
+                              updateAllowanceRow(row.id, "label", e.target.value)
+                            }
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="w-32 rounded-xl border border-accent px-2 py-1 text-xs bg-white text-secondary focus:outline-none focus:ring-1 focus:ring-accent"
+                            placeholder="Amount"
+                            value={row.amount}
+                            onChange={(e) =>
+                              updateAllowanceRow(row.id, "amount", e.target.value)
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="text-xs text-red-600 hover:text-red-800"
+                            onClick={() => removeAllowanceRow(row.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center mt-2">
+                        <button
+                          type="button"
+                          className="px-3 py-1 rounded-xl bg-white text-black border border-accent text-xs hover:bg-primary/60"
+                          onClick={addAllowanceRow}
+                        >
+                          + Add Allowance
+                        </button>
+                        <span className="text-xs font-semibold">
+                          Total: {formatCurrency(allowanceTotal)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 border-t border-accent/40 pt-3 space-y-1">
+                      <p className="font-semibold text-sm">Additional Deductions</p>
+                      {deductions.length === 0 && (
+                        <p className="text-xs text-gray-700">No additional deductions added.</p>
+                      )}
+                      {deductions.map((row) => (
+                        <div
+                          key={row.id}
+                          className="flex flex-col sm:flex-row gap-2 items-start sm:items-center mb-1"
+                        >
+                          <input
+                            type="text"
+                            className="flex-1 rounded-xl border border-accent px-2 py-1 text-xs bg-white text-secondary focus:outline-none focus:ring-1 focus:ring-accent"
+                            placeholder="Deduction name"
+                            value={row.label}
+                            onChange={(e) =>
+                              updateDeductionRow(row.id, "label", e.target.value)
+                            }
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="w-32 rounded-xl border border-accent px-2 py-1 text-xs bg-white text-secondary focus:outline-none focus:ring-1 focus:ring-accent"
+                            placeholder="Amount"
+                            value={row.amount}
+                            onChange={(e) =>
+                              updateDeductionRow(row.id, "amount", e.target.value)
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="text-xs text-red-600 hover:text-red-800"
+                            onClick={() => removeDeductionRow(row.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center mt-2">
+                        <button
+                          type="button"
+                          className="px-3 py-1 rounded-xl bg-white text-black border border-accent text-xs hover:bg-primary/60"
+                          onClick={addDeductionRow}
+                        >
+                          + Add Deduction
+                        </button>
+                        <span className="text-xs font-semibold">
+                          Total: {formatCurrency(deductionTotal)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -641,6 +1063,25 @@ export default function AdminPayrollPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {payrollDetails && (
+              <div className="w-full flex justify-end gap-3 mt-4">
+                <button
+                  onClick={handleSaveSalary}
+                  disabled={!payrollDetails}
+                  className="px-6 h-[44px] bg-black text-white border border-accent rounded-2xl hover:bg-accent/90 disabled:opacity-60"
+                >
+                  Save Salary
+                </button>
+                <button
+                  onClick={handleDownloadPaysheet}
+                  disabled={!payrollDetails}
+                  className="px-6 h-[44px] bg-white text-black border border-accent rounded-2xl hover:bg-primary/60 disabled:opacity-60"
+                >
+                  Download Paysheet
+                </button>
               </div>
             )}
 

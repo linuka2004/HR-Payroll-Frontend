@@ -30,7 +30,8 @@ export default function AdminPage() {
                 Authorization: `Bearer ${token}`,
             },
         }).then((response)=>{
-            if(response.data.role == "admin"){
+            const role = String(response.data.role || "").toLowerCase();
+            if(role === "admin" || role === "manager"){
                 setUser(response.data);
             }else{
                 window.location.href = "/";

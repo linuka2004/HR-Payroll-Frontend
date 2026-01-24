@@ -441,6 +441,10 @@ export default function AdminPayrollPage() {
             <td><strong>Name:</strong> ${employee.firstName || ""} ${employee.lastName || ""}</td>
           </tr>
           <tr>
+            <td><strong>ETF Number:</strong> ${employee.etfNumber || ""}</td>
+            <td></td>
+          </tr>
+          <tr>
             <td><strong>Pay Period:</strong> ${period ? `${period.year}-${String(period.month).padStart(2, "0")}` : ""}</td>
             <td><strong>Designation:</strong> ${employee.role || ""}</td>
           </tr>
@@ -788,7 +792,7 @@ export default function AdminPayrollPage() {
                 >
                   {employees.map((emp) => (
                     <option key={emp.employeeId} value={emp.employeeId}>
-                      {emp.employeeId} - {emp.firstName} {emp.lastName}
+                      {emp.etfNumber} - {emp.firstName} {emp.lastName}
                     </option>
                   ))}
                 </select>
@@ -850,6 +854,9 @@ export default function AdminPayrollPage() {
                     <div className="text-sm space-y-1">
                       <p>
                         <span className="font-semibold">ID:</span> {employee.employeeId}
+                      </p>
+                      <p>
+                        <span className="font-semibold">ETF Number:</span> {employee.etfNumber}
                       </p>
                       <p>
                         <span className="font-semibold">Name:</span> {employee.firstName} {" "}
@@ -1159,6 +1166,10 @@ export default function AdminPayrollPage() {
                           <p>
                             <span className="font-semibold">ID:</span>{" "}
                             {detailPayroll.employee?.employeeId}
+                          </p>
+                          <p>
+                            <span className="font-semibold">ETF Number:</span>{" "}
+                            {detailPayroll.employee?.etfNumber}
                           </p>
                           <p>
                             <span className="font-semibold">Name:</span>{" "}

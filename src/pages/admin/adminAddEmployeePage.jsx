@@ -10,11 +10,14 @@ export default function AdminAddEmployeePage() {
   const [employeeId, setEmployeeId] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [idNumber, setIdNumber] = useState("");
+  const [etfNumber, setEtfNumber] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [department, setDepartment] = useState("");
   const [address, setAddress] = useState("");
   const [role, setRole] = useState("");
   const [baseSalary, setBaseSalary] = useState(0);
   const [allowances, setAllowances] = useState(0);
-  const [deductions, setDeductions] = useState(0);
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -29,7 +32,18 @@ export default function AdminAddEmployeePage() {
       return;
     }
 
-    if (!employeeId || !firstName || !lastName || !address || !role || !baseSalary) {
+    if (
+      !employeeId ||
+      !firstName ||
+      !lastName ||
+      !idNumber ||
+      !etfNumber ||
+      !telephone ||
+      !department ||
+      !address ||
+      !role ||
+      !baseSalary
+    ) {
       toast.error("Please fill all required fields.");
       return;
     }
@@ -56,12 +70,15 @@ export default function AdminAddEmployeePage() {
           employeeId,
           firstName,
           lastName,
+          idNumber,
+          etfNumber,
+          telephone,
+          department,
           address,
           role,
           image: imageUrl || undefined,
           baseSalary: Number(baseSalary),
           allowances: Number(allowances) || 0,
-          deductions: Number(deductions) || 0,
         },
         {
           headers: {
@@ -115,6 +132,42 @@ export default function AdminAddEmployeePage() {
               className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
             />
           </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>ID Number: </label>
+            <input
+              type="text"
+              value={idNumber}
+              onChange={(e) => setIdNumber(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>ETF Number: </label>
+            <input
+              type="text"
+              value={etfNumber}
+              onChange={(e) => setEtfNumber(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>Telephone: </label>
+            <input
+              type="tel"
+              value={telephone}
+              onChange={(e) => setTelephone(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>Department: </label>
+            <input
+              type="text"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+          </div>
           <div className="my-[10px] w-full">
             <label>Address: </label>
             <textarea
@@ -147,15 +200,6 @@ export default function AdminAddEmployeePage() {
               type="number"
               value={allowances}
               onChange={(e) => setAllowances(e.target.value)}
-              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
-            />
-          </div>
-          <div className="my-[10px] w-full md:w-[48%]">
-            <label>Deductions (Rs): </label>
-            <input
-              type="number"
-              value={deductions}
-              onChange={(e) => setDeductions(e.target.value)}
               className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
             />
           </div>

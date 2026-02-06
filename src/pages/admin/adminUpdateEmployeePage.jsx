@@ -18,6 +18,8 @@ export default function AdminUpdateEmployeePage() {
   const [role, setRole] = useState("");
   const [baseSalary, setBaseSalary] = useState(0);
   const [allowances, setAllowances] = useState(0);
+  const [annualLeaveEntitlement, setAnnualLeaveEntitlement] = useState(0);
+  const [sickLeaveEntitlement, setSickLeaveEntitlement] = useState(0);
   const [image, setImage] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,8 @@ export default function AdminUpdateEmployeePage() {
       setBaseSalary(existing.baseSalary || 0);
       setAllowances(existing.allowances || 0);
       setImage(existing.image || "");
+      setAnnualLeaveEntitlement(existing.annualLeaveEntitlementDays || 0);
+      setSickLeaveEntitlement(existing.sickLeaveEntitlementDays || 0);
       return;
     }
 
@@ -84,6 +88,8 @@ export default function AdminUpdateEmployeePage() {
         setBaseSalary(emp.baseSalary || 0);
         setAllowances(emp.allowances || 0);
         setImage(emp.image || "");
+        setAnnualLeaveEntitlement(emp.annualLeaveEntitlementDays || 0);
+        setSickLeaveEntitlement(emp.sickLeaveEntitlementDays || 0);
       })
       .catch((err) => {
         console.error("Error loading employee", err);
@@ -151,6 +157,8 @@ export default function AdminUpdateEmployeePage() {
           image: imageUrl,
           baseSalary: Number(baseSalary),
           allowances: Number(allowances) || 0,
+          annualLeaveEntitlementDays: Number(annualLeaveEntitlement) || 0,
+          sickLeaveEntitlementDays: Number(sickLeaveEntitlement) || 0,
         },
         {
           headers: {
@@ -273,6 +281,26 @@ export default function AdminUpdateEmployeePage() {
               type="number"
               value={allowances}
               onChange={(e) => setAllowances(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>Annual Leaves (days / year): </label>
+            <input
+              type="number"
+              min="0"
+              value={annualLeaveEntitlement}
+              onChange={(e) => setAnnualLeaveEntitlement(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>Sick Leaves (days / year): </label>
+            <input
+              type="number"
+              min="0"
+              value={sickLeaveEntitlement}
+              onChange={(e) => setSickLeaveEntitlement(e.target.value)}
               className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
             />
           </div>

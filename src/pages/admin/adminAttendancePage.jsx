@@ -173,9 +173,18 @@ export default function AdminAttendancePage() {
   return (
     <div className="w-full min-h-screen flex justify-center px-4 py-6 sm:px-6 md:px-10 bg-primary text-secondary custom-scrollbar">
       <div className="w-full max-w-3xl bg-white shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 overflow-hidden">
-        <h1 className="text-3xl font-semibold mb-6 tracking-wide text-secondary">
-          Record Attendance
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <h1 className="text-3xl font-semibold tracking-wide text-secondary">
+            Record Attendance
+          </h1>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/attendance/view")}
+            className="px-4 h-[40px] bg-black text-white rounded-2xl hover:bg-accent/90 text-sm"
+          >
+            Get Attendance (Payroll Cycle)
+          </button>
+        </div>
 
         {loadingEmployees ? (
           <Loader />

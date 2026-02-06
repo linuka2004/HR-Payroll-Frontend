@@ -13,6 +13,7 @@ import AdminAddEmployeePage from "./admin/adminAddEmployeePage";
 import AdminUpdateEmployeePage from "./admin/adminUpdateEmployeePage";
 import AdminPayrollPage from "./admin/adminPayrollPage";
 import AdminAttendancePage from "./admin/adminAttendancePage";
+import AdminAttendanceViewPage from "./admin/adminAttendanceViewPage";
 
 export default function AdminPage() {
     
@@ -110,7 +111,8 @@ export default function AdminPage() {
                     <Route path="/users" element={<AdminUsersPage />} />
                     <Route path="/add-user" element={<AdminAddUserPage />} />
                     <Route path="/payroll" element={<AdminPayrollPage />} />
-                    <Route path="/attendance" element={<AdminAttendancePage />} />            
+                    <Route path="/attendance" element={<AdminAttendancePage />} />
+                    <Route path="/attendance/view" element={<AdminAttendanceViewPage />} />            
                 </Routes>
             </div>
 

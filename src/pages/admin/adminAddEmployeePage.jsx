@@ -18,6 +18,8 @@ export default function AdminAddEmployeePage() {
   const [role, setRole] = useState("");
   const [baseSalary, setBaseSalary] = useState(0);
   const [allowances, setAllowances] = useState(0);
+  const [annualLeaveEntitlement, setAnnualLeaveEntitlement] = useState(0);
+  const [sickLeaveEntitlement, setSickLeaveEntitlement] = useState(0);
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -79,6 +81,8 @@ export default function AdminAddEmployeePage() {
           image: imageUrl || undefined,
           baseSalary: Number(baseSalary),
           allowances: Number(allowances) || 0,
+          annualLeaveEntitlementDays: Number(annualLeaveEntitlement) || 0,
+          sickLeaveEntitlementDays: Number(sickLeaveEntitlement) || 0,
         },
         {
           headers: {
@@ -202,6 +206,28 @@ export default function AdminAddEmployeePage() {
               onChange={(e) => setAllowances(e.target.value)}
               className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
             />
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>Annual Leaves (days / year): </label>
+            <input
+              type="number"
+              min="0"
+              value={annualLeaveEntitlement}
+              onChange={(e) => setAnnualLeaveEntitlement(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+            <p className="text-sm text-gray-500 text-right">Total annual leave days allocated per year.</p>
+          </div>
+          <div className="my-[10px] w-full md:w-[48%]">
+            <label>Sick Leaves (days / year): </label>
+            <input
+              type="number"
+              min="0"
+              value={sickLeaveEntitlement}
+              onChange={(e) => setSickLeaveEntitlement(e.target.value)}
+              className="w-full h-[40px] rounded-2xl focus-outline-none focus:ring-2 focus:ring-accent border border-accent shadow-2xl px-[20px]"
+            />
+            <p className="text-sm text-gray-500 text-right">Total sick leave days allocated per year.</p>
           </div>
           <div className="my-[10px] w-full">
             <label>Profile Image (optional): </label>
